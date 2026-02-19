@@ -268,5 +268,3 @@ openclaw config set agents.defaults.maxConcurrent 1
 
 - [Raspberry Pi Setup Guide](./platforms/raspberry-pi.md)
 - [AWS Bedrock Guide](./providers/bedrock.md)
-- [Performance Monitoring Script](../scripts/raspberry-pi-monitor.sh)
-- [Health Check Script](../scripts/health-check.sh)

@@ -123,11 +123,12 @@ Setting `allowInsecureAuth: true` tells OpenClaw to accept authentication over H
    ```
 
 7. **Create DNS record:**
+
    ```bash
    cloudflared tunnel route dns openclaw openclaw.yourdomain.com
    ```
 
-**Access:** https://openclaw.yourdomain.com
+**Access:** <https://openclaw.yourdomain.com>
 
 ---
 
@@ -187,7 +188,7 @@ sudo systemctl restart nginx
 
 **Automatic HTTPS with Let's Encrypt!**
 
-#### Configuration
+#### Caddy Configuration
 
 **`/etc/caddy/Caddyfile`:**
 

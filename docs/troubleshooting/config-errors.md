@@ -206,13 +206,13 @@ This checks for common model configuration issues and suggests fixes.
 
 ## Dashboard Authentication Fails (Error 1008)
 
-### Error Message
+### Dashboard Error Message
 
 ```
 Error 1008: Device token mismatch
 ```
 
-### Symptoms
+### Dashboard Symptoms
 
 - Can't access dashboard at `http://localhost:3030` (or LAN IP)
 - Authentication fails even with correct token
@@ -222,7 +222,7 @@ Error 1008: Device token mismatch
 
 Using a reverse proxy (Cloudflare Tunnel, nginx, Caddy, etc.) that terminates TLS. OpenClaw thinks requests are insecure and rejects them.
 
-### Current Configuration
+### Dashboard Current Configuration
 
 ```json
 {
@@ -235,7 +235,7 @@ Using a reverse proxy (Cloudflare Tunnel, nginx, Caddy, etc.) that terminates TL
 }
 ```
 
-### Solution
+### Dashboard Solution
 
 ```bash
 openclaw config set gateway.controlUi.allowInsecureAuth true
@@ -275,14 +275,14 @@ Don't use it for direct internet exposure without TLS.
 
 ## Telegram Bot Not Responding
 
-### Symptoms
+### Telegram Symptoms
 
 - Bot receives messages (Telegram shows "delivered")
 - No agent invocations in logs
 - `openclaw channels status` shows "running"
 - `journalctl` shows no errors
 
-### Diagnosis
+### Telegram Diagnosis
 
 ```bash
 # Check if bot is running
@@ -294,7 +294,7 @@ journalctl --user -u openclaw-gateway -f | grep "messageChannel=telegram"
 # If you see no "messageChannel=telegram" entries, polling is broken
 ```
 
-### Solution
+### Telegram Solution
 
 **Quick Fix:**
 
@@ -321,7 +321,7 @@ systemctl --user start openclaw-gateway.service
 # Test by sending a message
 ```
 
-### Related Issue
+### Telegram Related Issue
 
 - **GitHub Issue:** #20518
 - **Status:** Workaround available, core fix needed
@@ -331,7 +331,7 @@ systemctl --user start openclaw-gateway.service
 
 ## Webhook to Polling Transition (409 Conflict)
 
-### Error Message
+### Webhook Error Message
 
 ```
 Telegram getUpdates conflict: Call to 'getUpdates' failed!
@@ -339,11 +339,11 @@ Telegram getUpdates conflict: Call to 'getUpdates' failed!
 use deleteWebhook to delete the webhook first); retrying in 30s.
 ```
 
-### Cause
+### Webhook Cause
 
 Switched from webhook to polling mode, but offset file retains stale state. Even after deleting webhook, conflict persists.
 
-### Solution
+### Webhook Solution
 
 ```bash
 # Delete webhook
@@ -366,7 +366,7 @@ When switching Telegram modes:
 3. Update configuration
 4. Restart gateway
 
-### Related Issue
+### Webhook Related Issue
 
 - **GitHub Issue:** #20519
 - **Status:** Manual workaround required
