@@ -326,7 +326,7 @@ Before using Aperture in production:
 ## Related Documentation
 
 - [Tailscale Overview](/gateway/tailscale) - Tailscale Serve/Funnel for Gateway dashboard
-- [Custom Providers](/providers/custom) - General custom provider configuration
+- [Model Providers](/providers) - General provider configuration
 - [Model Configuration](/concepts/models) - Model catalog and provider setup
 - [Troubleshooting](/gateway/troubleshooting) - General Gateway troubleshooting
 

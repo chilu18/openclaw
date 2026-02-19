@@ -32,7 +32,7 @@ x-i18n:
 
 形式化验证模型目前与 OpenClaw 主仓库分开维护。模型仓库尚未公开。
 
-有关形式化验证的问题或请求访问模型，请联系负责形式化建模的维护者（参见 [CONTRIBUTING.md](../../CONTRIBUTING.md)）。
+有关形式化验证的问题或请求访问模型，请联系负责形式化建模的维护者（参见 [Contributing Guide](https://github.com/openclaw/openclaw/blob/main/CONTRIBUTING.md)）。
 
 ## 重要注意事项
 

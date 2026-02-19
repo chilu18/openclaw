@@ -25,7 +25,7 @@ misconfiguration safety), under explicit assumptions.
 
 The formal verification models are currently maintained separately from the main OpenClaw repository. The models repository is not yet publicly available.
 
-For questions about formal verification or to request access to the models, please contact the maintainer responsible for formal modeling (see [CONTRIBUTING.md](../../CONTRIBUTING.md)).
+For questions about formal verification or to request access to the models, please contact the maintainer responsible for formal modeling (see [Contributing Guide](https://github.com/openclaw/openclaw/blob/main/CONTRIBUTING.md)).
 
 ## Important caveats
 
