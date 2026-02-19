@@ -537,9 +537,9 @@ try {
 
 ## Related Documentation
 
-- [Shell Tool Configuration](/tools/shell)
-- [Tool Execution](/concepts/tools)
-- [Process Management](/gateway/process-management)
+- [Exec Tool](/tools/exec)
+- [Tools Overview](/tools/index)
+- [Background Process](/gateway/background-process)
 
 ## External Resources
 

@@ -358,7 +358,7 @@ openclaw logs --follow | grep -E "cache_write|cache_read"
 
 - [Anthropic Provider](/providers/anthropic)
 - [Model Configuration](/concepts/models)
-- [Cost Optimization](/concepts/cost-optimization)
+- [Usage Tracking](/concepts/usage-tracking)
 
 ## External Resources
 

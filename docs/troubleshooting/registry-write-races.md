@@ -702,8 +702,8 @@ class Registry {
 ## Related Documentation
 
 - [Model Configuration](/concepts/models)
-- [Gateway State Management](/gateway/state-management)
-- [Plugin Development](/plugins/development)
+- [Gateway Configuration](/gateway/configuration)
+- [Plugin Manifest](/plugins/manifest)
 
 ## External Resources
 

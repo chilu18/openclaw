@@ -682,8 +682,8 @@ const lockId2 = await lockManager.acquireLock("test-session");
 ## Related Documentation
 
 - [Session Management](/concepts/sessions)
-- [Concurrency Control](/gateway/concurrency)
 - [Gateway Configuration](/gateway/configuration)
+- [Gateway Lock](/gateway/gateway-lock)
 
 ## External Resources
 

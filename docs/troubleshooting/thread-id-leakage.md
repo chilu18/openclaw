@@ -571,7 +571,7 @@ res.status(500).json({ error: "Operation failed" });
 
 - [Security Hardening](/troubleshooting/security-hardening)
 - [API Authentication](/gateway/authentication)
-- [Error Handling](/concepts/error-handling)
+- [Gateway Troubleshooting](/gateway/troubleshooting)
 
 ## External Resources
 

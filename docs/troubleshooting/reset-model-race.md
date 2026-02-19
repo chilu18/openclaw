@@ -605,7 +605,7 @@ app.use((req, res, next) => {
 ## Related Documentation
 
 - [Model Configuration](/concepts/models)
-- [Provider Management](/gateway/providers)
+- [Model Providers](/concepts/model-providers)
 - [Gateway Configuration](/gateway/configuration)
 
 ## External Resources
