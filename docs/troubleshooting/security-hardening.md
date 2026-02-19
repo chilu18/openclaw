@@ -507,7 +507,7 @@ Before deploying to production:
 Report vulnerabilities to:
 
 - **GitHub Security**: <https://github.com/openclaw/openclaw/security>
-- **Email**: security@openclaw.ai
+- **Email**: <security@openclaw.ai>
 
 Include:
 
