@@ -89,6 +89,52 @@ Monitor Raspberry Pi performance for OpenClaw
 - Detecting thermal throttling
 - Checking if optimizations are needed
 
+### [health-check.sh](./health-check.sh)
+Comprehensive health check for all OpenClaw components
+
+**What it checks:**
+- OpenClaw installation
+- Gateway service status
+- Configuration validity
+- Channel setup (Telegram, Slack)
+- AWS Bedrock access
+- System resources
+- Network connectivity
+
+**Usage:**
+```bash
+./scripts/health-check.sh
+```
+
+**Returns:** Exit code 0 (success) or 1 (failure) for automation
+
+---
+
+## Maintenance Scripts
+
+### [backup-config.sh](./backup-config.sh)
+Backup OpenClaw configuration and data
+
+**What it does:**
+- Creates timestamped backup archive
+- Excludes logs and node_modules
+- Auto-cleanup (keeps last 10 backups)
+- Provides restore instructions
+
+**Usage:**
+```bash
+./scripts/backup-config.sh
+```
+
+**Backup location:** `~/openclaw-backups/`
+
+**Restore:**
+```bash
+systemctl --user stop openclaw-gateway.service
+tar -xzf ~/openclaw-backups/openclaw-backup-TIMESTAMP.tar.gz -C ~
+systemctl --user start openclaw-gateway.service
+```
+
 ---
 
 ## Quick Reference
