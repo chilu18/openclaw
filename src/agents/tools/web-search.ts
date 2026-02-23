@@ -42,6 +42,8 @@ const KIMI_WEB_SEARCH_TOOL = {
 const SEARCH_CACHE = new Map<string, CacheEntry<Record<string, unknown>>>();
 const BRAVE_FRESHNESS_SHORTCUTS = new Set(["pd", "pw", "pm", "py"]);
 const BRAVE_FRESHNESS_RANGE = /^(\d{4}-\d{2}-\d{2})to(\d{4}-\d{2}-\d{2})$/;
+const BRAVE_LANGUAGE_CODE_RE = /^[a-z]{2,3}$/i;
+const BRAVE_LOCALE_CODE_RE = /^([a-z]{2,3})[-_]([a-z]{2})$/i;
 
 const WebSearchSchema = Type.Object({
   query: Type.String({ description: "Search query string." }),
@@ -65,7 +67,7 @@ const WebSearchSchema = Type.Object({
   ),
   ui_lang: Type.Optional(
     Type.String({
-      description: "ISO language code for UI elements.",
+      description: "Locale for UI elements (e.g., 'de-DE', 'en-US').",
     }),
   ),
   freshness: Type.Optional(
@@ -728,6 +730,90 @@ function normalizeFreshness(value: string | undefined): string | undefined {
   return `${start}to${end}`;
 }
 
+function normalizeBraveLanguageToken(raw: string | undefined): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.replace(/_/g, "-");
+}
+
+function normalizeBraveLanguageCode(raw: string): string {
+  return raw.toLowerCase();
+}
+
+function normalizeBraveLocaleCode(raw: string): string {
+  const match = raw.match(BRAVE_LOCALE_CODE_RE);
+  if (!match) {
+    return raw;
+  }
+  const language = match[1]?.toLowerCase();
+  const region = match[2]?.toUpperCase();
+  return language && region ? `${language}-${region}` : raw;
+}
+
+function toBraveLanguageFromLocale(raw: string): string | undefined {
+  const match = raw.match(BRAVE_LOCALE_CODE_RE);
+  if (!match?.[1]) {
+    return undefined;
+  }
+  return match[1].toLowerCase();
+}
+
+function normalizeBraveLanguageParams(params: {
+  country?: string;
+  searchLang?: string;
+  uiLang?: string;
+}): { searchLang?: string; uiLang?: string } {
+  let searchLang = normalizeBraveLanguageToken(params.searchLang);
+  let uiLang = normalizeBraveLanguageToken(params.uiLang);
+  const country = params.country?.trim();
+  const countryCode = country && /^[a-z]{2}$/i.test(country) ? country.toUpperCase() : undefined;
+
+  // Fix common swapped payloads: search_lang=tr-TR, ui_lang=tr.
+  if (
+    searchLang &&
+    uiLang &&
+    BRAVE_LOCALE_CODE_RE.test(searchLang) &&
+    BRAVE_LANGUAGE_CODE_RE.test(uiLang)
+  ) {
+    const extractedLanguage = toBraveLanguageFromLocale(searchLang);
+    if (!extractedLanguage || extractedLanguage === uiLang.toLowerCase()) {
+      uiLang = normalizeBraveLocaleCode(searchLang);
+      searchLang = extractedLanguage ?? normalizeBraveLanguageCode(uiLang.split("-")[0] ?? uiLang);
+    }
+  }
+
+  if (searchLang && BRAVE_LOCALE_CODE_RE.test(searchLang)) {
+    const extractedLanguage = toBraveLanguageFromLocale(searchLang);
+    if (!uiLang) {
+      uiLang = normalizeBraveLocaleCode(searchLang);
+    }
+    searchLang = extractedLanguage ?? searchLang;
+  }
+
+  if (!searchLang && uiLang && BRAVE_LOCALE_CODE_RE.test(uiLang)) {
+    searchLang = toBraveLanguageFromLocale(uiLang);
+  }
+
+  if (!searchLang && uiLang && BRAVE_LANGUAGE_CODE_RE.test(uiLang)) {
+    searchLang = normalizeBraveLanguageCode(uiLang);
+  }
+
+  if (uiLang && BRAVE_LANGUAGE_CODE_RE.test(uiLang) && countryCode) {
+    uiLang = `${normalizeBraveLanguageCode(uiLang)}-${countryCode}`;
+  }
+
+  if (searchLang && BRAVE_LANGUAGE_CODE_RE.test(searchLang)) {
+    searchLang = normalizeBraveLanguageCode(searchLang);
+  }
+  if (uiLang && BRAVE_LOCALE_CODE_RE.test(uiLang)) {
+    uiLang = normalizeBraveLocaleCode(uiLang);
+  }
+
+  return { searchLang, uiLang };
+}
+
 /**
  * Map normalized freshness values (pd/pw/pm/py) to Perplexity's
  * search_recency_filter values (day/week/month/year).
@@ -1034,9 +1120,20 @@ async function runWebSearch(params: {
   kimiBaseUrl?: string;
   kimiModel?: string;
 }): Promise<Record<string, unknown>> {
+  const normalizedBraveLanguage =
+    params.provider === "brave"
+      ? normalizeBraveLanguageParams({
+          country: params.country,
+          searchLang: params.search_lang,
+          uiLang: params.ui_lang,
+        })
+      : null;
+  const braveSearchLang = normalizedBraveLanguage?.searchLang ?? params.search_lang;
+  const braveUiLang = normalizedBraveLanguage?.uiLang ?? params.ui_lang;
+
   const cacheKey = normalizeCacheKey(
     params.provider === "brave"
-      ? `${params.provider}:${params.query}:${params.count}:${params.country || "default"}:${params.search_lang || "default"}:${params.ui_lang || "default"}:${params.freshness || "default"}`
+      ? `${params.provider}:${params.query}:${params.count}:${params.country || "default"}:${braveSearchLang || "default"}:${braveUiLang || "default"}:${params.freshness || "default"}`
       : params.provider === "perplexity"
         ? `${params.provider}:${params.query}:${params.perplexityBaseUrl ?? DEFAULT_PERPLEXITY_BASE_URL}:${params.perplexityModel ?? DEFAULT_PERPLEXITY_MODEL}:${params.freshness || "default"}`
         : params.provider === "kimi"
@@ -1171,11 +1268,11 @@ async function runWebSearch(params: {
   if (params.country) {
     url.searchParams.set("country", params.country);
   }
-  if (params.search_lang) {
-    url.searchParams.set("search_lang", params.search_lang);
+  if (braveSearchLang) {
+    url.searchParams.set("search_lang", braveSearchLang);
   }
-  if (params.ui_lang) {
-    url.searchParams.set("ui_lang", params.ui_lang);
+  if (braveUiLang) {
+    url.searchParams.set("ui_lang", braveUiLang);
   }
   if (params.freshness) {
     url.searchParams.set("freshness", params.freshness);

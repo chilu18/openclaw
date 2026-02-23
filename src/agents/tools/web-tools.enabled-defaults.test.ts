@@ -135,6 +135,27 @@ describe("web_search country and language parameters", () => {
     expect(url.searchParams.get(key)).toBe(value);
   });
 
+  it("normalizes swapped Brave language params (search locale + ui language)", async () => {
+    const url = await runBraveSearchAndGetUrl({
+      search_lang: "tr-TR",
+      ui_lang: "tr",
+    });
+    expect(url.searchParams.get("search_lang")).toBe("tr");
+    expect(url.searchParams.get("ui_lang")).toBe("tr-TR");
+  });
+
+  it("derives search_lang from ui_lang locale for Brave", async () => {
+    const url = await runBraveSearchAndGetUrl({ ui_lang: "de-DE" });
+    expect(url.searchParams.get("search_lang")).toBe("de");
+    expect(url.searchParams.get("ui_lang")).toBe("de-DE");
+  });
+
+  it("expands ui_lang language code using country for Brave", async () => {
+    const url = await runBraveSearchAndGetUrl({ country: "TR", ui_lang: "tr" });
+    expect(url.searchParams.get("search_lang")).toBe("tr");
+    expect(url.searchParams.get("ui_lang")).toBe("tr-TR");
+  });
+
   it("rejects invalid freshness values", async () => {
     const mockFetch = installMockFetch({ web: { results: [] } });
     const tool = createWebSearchTool({ config: undefined, sandboxed: true });
