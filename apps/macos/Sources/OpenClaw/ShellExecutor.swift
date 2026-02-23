@@ -38,6 +38,23 @@ enum ShellExecutor {
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
 
+        final class TimeoutBox: @unchecked Sendable {
+            private let lock = NSLock()
+            private var didTimeout = false
+
+            func markTimedOut() {
+                self.lock.lock()
+                self.didTimeout = true
+                self.lock.unlock()
+            }
+
+            func value() -> Bool {
+                self.lock.lock()
+                defer { self.lock.unlock() }
+                return self.didTimeout
+            }
+        }
+
         do {
             try process.run()
         } catch {
@@ -52,44 +69,29 @@ enum ShellExecutor {
 
         let outTask = Task { stdoutPipe.fileHandleForReading.readToEndSafely() }
         let errTask = Task { stderrPipe.fileHandleForReading.readToEndSafely() }
-
-        let waitTask = Task { () -> ShellResult in
-            process.waitUntilExit()
-            let out = await outTask.value
-            let err = await errTask.value
-            let status = Int(process.terminationStatus)
-            return ShellResult(
-                stdout: String(bytes: out, encoding: .utf8) ?? "",
-                stderr: String(bytes: err, encoding: .utf8) ?? "",
-                exitCode: status,
-                timedOut: false,
-                success: status == 0,
-                errorMessage: status == 0 ? nil : "exit \(status)")
-        }
+        let timeoutBox = TimeoutBox()
 
         if let timeout, timeout > 0 {
-            let nanos = UInt64(timeout * 1_000_000_000)
-            return await withTaskGroup(of: ShellResult.self) { group in
-                group.addTask { await waitTask.value }
-                group.addTask {
-                    try? await Task.sleep(nanoseconds: nanos)
-                    if process.isRunning { process.terminate() }
-                    _ = await waitTask.value // drain pipes after termination
-                    return ShellResult(
-                        stdout: "",
-                        stderr: "",
-                        exitCode: nil,
-                        timedOut: true,
-                        success: false,
-                        errorMessage: "timeout")
-                }
-                let first = await group.next()!
-                group.cancelAll()
-                return first
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + timeout) {
+                guard process.isRunning else { return }
+                timeoutBox.markTimedOut()
+                process.terminate()
             }
         }
 
-        return await waitTask.value
+        process.waitUntilExit()
+        let timedOut = timeoutBox.value()
+
+        let out = await outTask.value
+        let err = await errTask.value
+        let status = Int(process.terminationStatus)
+        return ShellResult(
+            stdout: String(bytes: out, encoding: .utf8) ?? "",
+            stderr: String(bytes: err, encoding: .utf8) ?? "",
+            exitCode: status,
+            timedOut: timedOut,
+            success: !timedOut && status == 0,
+            errorMessage: timedOut ? "timeout" : (status == 0 ? nil : "exit \(status)"))
     }
 
     static func run(command: [String], cwd: String?, env: [String: String]?, timeout: Double?) async -> Response {

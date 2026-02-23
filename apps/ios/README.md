@@ -6,10 +6,9 @@ This iPhone app is super-alpha and internal-use only. It connects to an OpenClaw
 
 ## Distribution Status
 
-NO TEST FLIGHT AVAILABLE AT THIS POINT
-
-- Current distribution: local/manual deploy from source via Xcode.
-- App Store flow is not part of the current internal development path.
+- Current default distribution: local/manual deploy from source via Xcode.
+- Repo maintainers do not publish an official TestFlight channel.
+- You can upload your own TestFlight build from your Apple Developer account via `apps/ios/fastlane` (see `apps/ios/fastlane/SETUP.md`).
 
 ## Super-Alpha Disclaimer
 

@@ -5,7 +5,6 @@ import Testing
 @Suite
 struct WideAreaGatewayDiscoveryTests {
     @Test func discoversBeaconFromTailnetDnsSdFallback() {
-        setenv("OPENCLAW_WIDE_AREA_DOMAIN", "openclaw.internal", 1)
         let statusJson = """
         {
           "Self": { "TailscaleIPs": ["100.69.232.64"] },
@@ -33,14 +32,15 @@ struct WideAreaGatewayDiscoveryTests {
                     return "\"displayName=Peter\\226\\128\\153s Mac Studio (OpenClaw)\" \"gatewayPort=18789\" \"tailnetDns=peters-mac-studio-1.sheep-coho.ts.net\" \"cliPath=/Users/steipete/openclaw/src/entry.ts\""
                 }
                 return ""
-            })
+            },
+            wideAreaDomain: "openclaw.internal")
 
         let beacons = WideAreaGatewayDiscovery.discover(
             timeoutSeconds: 2.0,
             context: context)
 
         #expect(beacons.count == 1)
-        let beacon = beacons[0]
+        guard let beacon = beacons.first else { return }
         let expectedDisplay = "Peter\u{2019}s Mac Studio (OpenClaw)"
         #expect(beacon.displayName == expectedDisplay)
         #expect(beacon.port == 18789)

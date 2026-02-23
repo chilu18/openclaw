@@ -20,6 +20,10 @@ ASC_KEY_PATH=/absolute/path/to/AuthKey_XXXXXXXXXX.p8
 
 # Code signing (Apple Team ID / App ID Prefix)
 IOS_DEVELOPMENT_TEAM=YOUR_TEAM_ID
+IOS_APP_IDENTIFIER=com.yourcompany.openclaw
+IOS_SHARE_IDENTIFIER=com.yourcompany.openclaw.share
+IOS_WATCH_APP_IDENTIFIER=com.yourcompany.openclaw.watchkitapp
+IOS_WATCH_EXTENSION_IDENTIFIER=com.yourcompany.openclaw.watchkitapp.extension
 ```
 
 Tip: run `scripts/ios-team-id.sh` from the repo root to print a Team ID to paste into `.env`. The helper prefers the canonical OpenClaw team (`Y5PE65HELJ`) when present locally; otherwise it prefers the first non-personal team from your Xcode account (then personal team if needed). Fastlane uses this helper automatically if `IOS_DEVELOPMENT_TEAM` is missing.
@@ -30,3 +34,7 @@ Run:
 cd apps/ios
 fastlane beta
 ```
+
+Notes:
+- `IOS_APP_IDENTIFIER` and related IDs must match App IDs registered in Apple Developer.
+- The `beta` lane forces automatic signing and clears manual provisioning profile specifiers.

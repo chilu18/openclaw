@@ -17,17 +17,18 @@ enum WideAreaGatewayDiscovery {
     private static let maxCandidates = 40
     private static let digPath = "/usr/bin/dig"
     private static let defaultTimeoutSeconds: TimeInterval = 0.2
-    private static let nameserverProbeConcurrency = 6
 
     struct DiscoveryContext: Sendable {
         var tailscaleStatus: @Sendable () -> String?
         var dig: @Sendable (_ args: [String], _ timeout: TimeInterval) -> String?
+        var wideAreaDomain: String?
 
         static let live = DiscoveryContext(
             tailscaleStatus: { readTailscaleStatus() },
             dig: { args, timeout in
                 runDig(args: args, timeout: timeout)
-            })
+            },
+            wideAreaDomain: nil)
     }
 
     static func discover(
@@ -42,7 +43,12 @@ enum WideAreaGatewayDiscovery {
         guard let ips = collectTailnetIPv4s(
             statusJson: context.tailscaleStatus()).nonEmpty else { return [] }
         var candidates = Array(ips.prefix(self.maxCandidates))
+        let resolvedDomain = context.wideAreaDomain ?? OpenClawBonjour.wideAreaGatewayServiceDomain
+        guard let domain = resolvedDomain else { return [] }
+        let domainTrimmed = domain.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+
         guard let nameserver = findNameserver(
+            domainTrimmed: domainTrimmed,
             candidates: &candidates,
             remaining: remaining,
             dig: context.dig)
@@ -50,8 +56,6 @@ enum WideAreaGatewayDiscovery {
             return []
         }
 
-        guard let domain = OpenClawBonjour.wideAreaGatewayServiceDomain else { return [] }
-        let domainTrimmed = domain.trimmingCharacters(in: CharacterSet(charactersIn: "."))
         let probeName = "_openclaw-gw._tcp.\(domainTrimmed)"
         guard let ptrLines = context.dig(
             ["+short", "+time=1", "+tries=1", "@\(nameserver)", probeName, "PTR"],
@@ -149,67 +153,31 @@ enum WideAreaGatewayDiscovery {
     }
 
     private static func findNameserver(
+        domainTrimmed: String,
         candidates: inout [String],
         remaining: () -> TimeInterval,
         dig: @escaping @Sendable (_ args: [String], _ timeout: TimeInterval) -> String?) -> String?
     {
-        guard let domain = OpenClawBonjour.wideAreaGatewayServiceDomain else { return nil }
-        let domainTrimmed = domain.trimmingCharacters(in: CharacterSet(charactersIn: "."))
         let probeName = "_openclaw-gw._tcp.\(domainTrimmed)"
 
         let ips = candidates
         candidates.removeAll(keepingCapacity: true)
         if ips.isEmpty { return nil }
-
-        final class ProbeState: @unchecked Sendable {
-            let lock = NSLock()
-            var nextIndex = 0
-            var found: String?
-        }
-
-        let state = ProbeState()
         let deadline = Date().addingTimeInterval(max(0, remaining()))
-        let workerCount = min(self.nameserverProbeConcurrency, ips.count)
-        let group = DispatchGroup()
 
-        for _ in 0..<workerCount {
-            group.enter()
-            DispatchQueue.global(qos: .utility).async {
-                defer { group.leave() }
-
-                while Date() < deadline {
-                    state.lock.lock()
-                    if state.found != nil {
-                        state.lock.unlock()
-                        return
-                    }
-                    let i = state.nextIndex
-                    state.nextIndex += 1
-                    state.lock.unlock()
-
-                    if i >= ips.count { return }
-                    let ip = ips[i]
-                    let budget = deadline.timeIntervalSinceNow
-                    if budget <= 0 { return }
-
-                    if let stdout = dig(
-                        ["+short", "+time=1", "+tries=1", "@\(ip)", probeName, "PTR"],
-                        min(defaultTimeoutSeconds, budget)),
-                        stdout.split(whereSeparator: \.isNewline).isEmpty == false
-                    {
-                        state.lock.lock()
-                        if state.found == nil {
-                            state.found = ip
-                        }
-                        state.lock.unlock()
-                        return
-                    }
-                }
+        for ip in ips {
+            let budget = deadline.timeIntervalSinceNow
+            if budget <= 0 { return nil }
+            if let stdout = dig(
+                ["+short", "+time=1", "+tries=1", "@\(ip)", probeName, "PTR"],
+                min(defaultTimeoutSeconds, budget)),
+                stdout.split(whereSeparator: \.isNewline).isEmpty == false
+            {
+                return ip
             }
         }
 
-        _ = group.wait(timeout: .now() + max(0.0, remaining()))
-        return state.found
+        return nil
     }
 
     private static func runDig(args: [String], timeout: TimeInterval) -> String? {

@@ -8,6 +8,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
 
 packages:
   OpenClawKit:
@@ -92,8 +94,8 @@ targets:
           - CFBundleURLName: ai.openclaw.ios
             CFBundleURLSchemes:
               - openclaw
-        CFBundleShortVersionString: "2026.2.23"
-        CFBundleVersion: "20260223"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -146,8 +148,8 @@ targets:
       path: ShareExtension/Info.plist
       properties:
         CFBundleDisplayName: OpenClaw Share
-        CFBundleShortVersionString: "2026.2.23"
-        CFBundleVersion: "20260223"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
@@ -176,8 +178,8 @@ targets:
       path: WatchApp/Info.plist
       properties:
         CFBundleDisplayName: OpenClaw
-        CFBundleShortVersionString: "2026.2.23"
-        CFBundleVersion: "20260223"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         WKCompanionAppBundleIdentifier: "$(OPENCLAW_APP_BUNDLE_ID)"
         WKWatchKitApp: true
 
@@ -200,8 +202,8 @@ targets:
       path: WatchExtension/Info.plist
       properties:
         CFBundleDisplayName: OpenClaw
-        CFBundleShortVersionString: "2026.2.23"
-        CFBundleVersion: "20260223"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionAttributes:
             WKAppBundleIdentifier: "$(OPENCLAW_WATCH_APP_BUNDLE_ID)"
@@ -228,5 +230,5 @@ targets:
       path: Tests/Info.plist
       properties:
         CFBundleDisplayName: OpenClawTests
-        CFBundleShortVersionString: "2026.2.23"
-        CFBundleVersion: "20260223"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"

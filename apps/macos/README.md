@@ -62,3 +62,14 @@ Use for local dev only; keep off for release builds.
 - `CODESIGN_TIMESTAMP=off` (offline debug)
 - `DISABLE_LIBRARY_VALIDATION=1` (dev-only Sparkle workaround)
 - `SKIP_TEAM_ID_CHECK=1` (bypass audit)
+
+## Tests
+
+```bash
+cd apps/macos
+swift test
+```
+
+When writing tests that mutate process-global state (`setenv`, `unsetenv`, `UserDefaults`),
+use `TestIsolation.withEnvValues` / `TestIsolation.withUserDefaultsValues` so parallel suites
+do not race each other.
