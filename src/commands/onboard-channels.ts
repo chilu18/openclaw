@@ -1,5 +1,8 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { listChannelPluginCatalogEntries } from "../channels/plugins/catalog.js";
+import {
+  listChannelPluginCatalogEntries,
+  type ChannelPluginCatalogEntry,
+} from "../channels/plugins/catalog.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { listChannelPlugins, getChannelPlugin } from "../channels/plugins/index.js";
 import type { ChannelMeta } from "../channels/plugins/types.js";
@@ -218,6 +221,23 @@ function resolveQuickstartDefault(
     }
   }
   return best?.channel;
+}
+
+function buildCoreChannelInstallFallbackEntry(
+  channel: ChannelChoice,
+): ChannelPluginCatalogEntry | null {
+  const meta = listChatChannels().find((entry) => entry.id === channel);
+  if (!meta) {
+    return null;
+  }
+  return {
+    id: channel,
+    meta,
+    install: {
+      npmSpec: `@openclaw/${channel}`,
+      defaultChoice: "npm",
+    },
+  };
 }
 
 async function maybeConfigureDmPolicies(params: {
@@ -447,9 +467,12 @@ export async function setupChannels(
     statusByChannel.set(channel, status);
   };
 
-  const ensureBundledPluginEnabled = async (channel: ChannelChoice): Promise<boolean> => {
+  const ensureBundledPluginEnabled = async (
+    channel: ChannelChoice,
+    options?: { suppressUnavailableNote?: boolean },
+  ): Promise<{ ok: true } | { ok: false; reason: "disabled" | "unavailable" }> => {
     if (getChannelPlugin(channel)) {
-      return true;
+      return { ok: true };
     }
     const result = enablePluginInConfig(next, channel);
     next = result.config;
@@ -458,7 +481,7 @@ export async function setupChannels(
         `Cannot enable ${channel}: ${result.reason ?? "plugin disabled"}.`,
         "Channel setup",
       );
-      return false;
+      return { ok: false, reason: "disabled" };
     }
     const workspaceDir = resolveAgentWorkspaceDir(next, resolveDefaultAgentId(next));
     reloadOnboardingPluginRegistry({
@@ -467,10 +490,40 @@ export async function setupChannels(
       workspaceDir,
     });
     if (!getChannelPlugin(channel)) {
-      await prompter.note(`${channel} plugin not available.`, "Channel setup");
-      return false;
+      if (!options?.suppressUnavailableNote) {
+        await prompter.note(`${channel} plugin not available.`, "Channel setup");
+      }
+      return { ok: false, reason: "unavailable" };
     }
     await refreshStatus(channel);
+    return { ok: true };
+  };
+
+  const ensureCatalogPluginInstalled = async (
+    entry: ChannelPluginCatalogEntry,
+  ): Promise<boolean> => {
+    const workspaceDir = resolveAgentWorkspaceDir(next, resolveDefaultAgentId(next));
+    const result = await ensureOnboardingPluginInstalled({
+      cfg: next,
+      entry,
+      prompter,
+      runtime,
+      workspaceDir,
+    });
+    next = result.cfg;
+    if (!result.installed) {
+      return false;
+    }
+    reloadOnboardingPluginRegistry({
+      cfg: next,
+      runtime,
+      workspaceDir,
+    });
+    if (!getChannelPlugin(entry.id as ChannelChoice)) {
+      await prompter.note(`${entry.id} plugin not available.`, "Channel setup");
+      return false;
+    }
+    await refreshStatus(entry.id as ChannelChoice);
     return true;
   };
 
@@ -575,28 +628,27 @@ export async function setupChannels(
     const { catalogById } = getChannelEntries();
     const catalogEntry = catalogById.get(channel);
     if (catalogEntry) {
-      const workspaceDir = resolveAgentWorkspaceDir(next, resolveDefaultAgentId(next));
-      const result = await ensureOnboardingPluginInstalled({
-        cfg: next,
-        entry: catalogEntry,
-        prompter,
-        runtime,
-        workspaceDir,
-      });
-      next = result.cfg;
-      if (!result.installed) {
+      const installed = await ensureCatalogPluginInstalled(catalogEntry);
+      if (!installed) {
         return;
       }
-      reloadOnboardingPluginRegistry({
-        cfg: next,
-        runtime,
-        workspaceDir,
-      });
-      await refreshStatus(channel);
     } else {
-      const enabled = await ensureBundledPluginEnabled(channel);
-      if (!enabled) {
-        return;
+      const bundled = await ensureBundledPluginEnabled(channel, {
+        suppressUnavailableNote: true,
+      });
+      if (!bundled.ok) {
+        if (bundled.reason !== "unavailable") {
+          return;
+        }
+        const fallbackEntry = buildCoreChannelInstallFallbackEntry(channel);
+        if (!fallbackEntry) {
+          await prompter.note(`${channel} plugin not available.`, "Channel setup");
+          return;
+        }
+        const installed = await ensureCatalogPluginInstalled(fallbackEntry);
+        if (!installed) {
+          return;
+        }
       }
     }
 
