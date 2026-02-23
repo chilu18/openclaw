@@ -63,6 +63,11 @@ describe("ensureConfigReady", () => {
       expectedDoctorCalls: 0,
     },
     {
+      name: "skips doctor flow for update status",
+      commandPath: ["update", "status"],
+      expectedDoctorCalls: 0,
+    },
+    {
       name: "runs doctor flow for commands that may mutate state",
       commandPath: ["message"],
       expectedDoctorCalls: 1,

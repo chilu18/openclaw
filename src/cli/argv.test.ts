@@ -249,6 +249,7 @@ describe("argv helpers", () => {
       ["node", "openclaw", "models", "list"],
       ["node", "openclaw", "models", "status"],
       ["node", "openclaw", "memory", "status"],
+      ["node", "openclaw", "update", "status"],
       ["node", "openclaw", "agent", "--message", "hi"],
     ] as const;
     const mutatingArgv = [
@@ -268,6 +269,7 @@ describe("argv helpers", () => {
     { path: ["status"], expected: false },
     { path: ["config", "get"], expected: false },
     { path: ["models", "status"], expected: false },
+    { path: ["update", "status"], expected: false },
     { path: ["agents", "list"], expected: true },
   ])("reuses command path for migrate state decisions: $path", ({ path, expected }) => {
     expect(shouldMigrateStateFromPath(path)).toBe(expected);

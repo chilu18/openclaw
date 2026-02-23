@@ -205,6 +205,9 @@ export function shouldMigrateStateFromPath(path: string[]): boolean {
   if (primary === "memory" && secondary === "status") {
     return false;
   }
+  if (primary === "update" && secondary === "status") {
+    return false;
+  }
   if (primary === "agent") {
     return false;
   }
