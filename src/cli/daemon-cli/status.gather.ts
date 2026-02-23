@@ -13,6 +13,7 @@ import { auditGatewayServiceConfig } from "../../daemon/service-audit.js";
 import { resolveGatewayService } from "../../daemon/service.js";
 import { resolveGatewayBindHost } from "../../gateway/net.js";
 import {
+  classifyPortListener,
   formatPortDiagnostics,
   inspectPortUsage,
   type PortListener,
@@ -95,12 +96,21 @@ export type DaemonStatus = {
   extraServices: Array<{ label: string; detail: string; scope: string }>;
 };
 
-function shouldReportPortUsage(status: PortUsageStatus | undefined, rpcOk?: boolean) {
-  if (status !== "busy") {
+function shouldReportPortUsage(status: DaemonStatus, rpcOk?: boolean) {
+  if (!status.port || status.port.status !== "busy") {
     return false;
   }
   if (rpcOk === true) {
     return false;
+  }
+  if (status.service.runtime?.status === "running") {
+    const port = status.port.port;
+    const ownedByGateway = status.port.listeners.some(
+      (listener) => classifyPortListener(listener, port) === "gateway",
+    );
+    if (ownedByGateway) {
+      return false;
+    }
   }
   return true;
 }
@@ -275,7 +285,7 @@ export async function gatherDaemonStatus(
 }
 
 export function renderPortDiagnosticsForCli(status: DaemonStatus, rpcOk?: boolean): string[] {
-  if (!status.port || !shouldReportPortUsage(status.port.status, rpcOk)) {
+  if (!status.port || !shouldReportPortUsage(status, rpcOk)) {
     return [];
   }
   return formatPortDiagnostics({

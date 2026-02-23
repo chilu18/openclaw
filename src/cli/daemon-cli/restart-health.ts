@@ -54,18 +54,33 @@ export async function inspectGatewayRestart(params: {
         )
       : [];
   const running = runtime.status === "running";
-  const ownsPort =
+  const runtimeOwnsListener =
     runtime.pid != null
       ? portUsage.listeners.some((listener) => listener.pid === runtime.pid)
-      : gatewayListeners.length > 0 ||
-        (portUsage.status === "busy" && portUsage.listeners.length === 0);
+      : false;
+  // systemd/launch wrappers may report a parent runtime PID while a child gateway PID owns the port.
+  const runningGatewayListenerPresent = running && gatewayListeners.length > 0;
+  const ownsPort =
+    runtimeOwnsListener ||
+    (runtime.pid == null
+      ? gatewayListeners.length > 0 ||
+        (portUsage.status === "busy" && portUsage.listeners.length === 0)
+      : runningGatewayListenerPresent);
   const healthy = running && ownsPort;
   const staleGatewayPids = Array.from(
     new Set(
       gatewayListeners
         .map((listener) => listener.pid)
         .filter((pid): pid is number => Number.isFinite(pid))
-        .filter((pid) => runtime.pid == null || pid !== runtime.pid || !running),
+        .filter((pid) => {
+          if (!running) {
+            return true;
+          }
+          if (runtimeOwnsListener || runningGatewayListenerPresent) {
+            return false;
+          }
+          return runtime.pid == null || pid !== runtime.pid;
+        }),
     ),
   );
 
