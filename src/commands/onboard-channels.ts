@@ -223,9 +223,17 @@ function resolveQuickstartDefault(
   return best?.channel;
 }
 
+const CORE_CHANNEL_NPM_FALLBACK_SPECS: Partial<Record<ChannelChoice, string>> = {
+  discord: "@openclaw/discord",
+};
+
 function buildCoreChannelInstallFallbackEntry(
   channel: ChannelChoice,
 ): ChannelPluginCatalogEntry | null {
+  const npmSpec = CORE_CHANNEL_NPM_FALLBACK_SPECS[channel];
+  if (!npmSpec) {
+    return null;
+  }
   const meta = listChatChannels().find((entry) => entry.id === channel);
   if (!meta) {
     return null;
@@ -234,7 +242,7 @@ function buildCoreChannelInstallFallbackEntry(
     id: channel,
     meta,
     install: {
-      npmSpec: `@openclaw/${channel}`,
+      npmSpec,
       defaultChoice: "npm",
     },
   };
