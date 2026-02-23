@@ -172,6 +172,59 @@ describe("sanitizeSessionHistory", () => {
     expect(first.content as string).toContain("sourceSession=agent:main:req");
   });
 
+  it("normalizes text-only user content arrays to strings", async () => {
+    setNonGoogleModelApi();
+
+    const messages: AgentMessage[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "first" },
+          { type: "text", text: "second" },
+        ],
+      } as unknown as AgentMessage,
+    ];
+
+    const result = await sanitizeSessionHistory({
+      messages,
+      modelApi: "openai-responses",
+      provider: "openai",
+      sessionManager: mockSessionManager,
+      sessionId: TEST_SESSION_ID,
+    });
+
+    const first = result[0] as Extract<AgentMessage, { role: "user" }>;
+    expect(first.role).toBe("user");
+    expect(typeof first.content).toBe("string");
+    expect(first.content).toBe("first\nsecond");
+  });
+
+  it("preserves non-text user content arrays", async () => {
+    setNonGoogleModelApi();
+
+    const messages: AgentMessage[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "photo from yesterday" },
+          { type: "image", data: "ZmFrZS1iYXNlNjQ=", mimeType: "image/png" },
+        ],
+      } as unknown as AgentMessage,
+    ];
+
+    const result = await sanitizeSessionHistory({
+      messages,
+      modelApi: "openai-responses",
+      provider: "openai",
+      sessionManager: mockSessionManager,
+      sessionId: TEST_SESSION_ID,
+    });
+
+    const first = result[0] as Extract<AgentMessage, { role: "user" }>;
+    expect(first.role).toBe("user");
+    expect(Array.isArray(first.content)).toBe(true);
+  });
+
   it("drops stale assistant usage snapshots kept before latest compaction summary", async () => {
     vi.mocked(helpers.isGoogleModelApi).mockReturnValue(false);
 

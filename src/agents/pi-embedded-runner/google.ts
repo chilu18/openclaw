@@ -133,6 +133,74 @@ function annotateInterSessionUserMessages(messages: AgentMessage[]): AgentMessag
   return touched ? out : messages;
 }
 
+function extractTextFromUserContentBlock(block: unknown): string | null {
+  if (!block || typeof block !== "object") {
+    return null;
+  }
+  const record = block as {
+    type?: unknown;
+    text?: unknown;
+    input_text?: unknown;
+    output_text?: unknown;
+  };
+  if (typeof record.text === "string") {
+    const type = typeof record.type === "string" ? record.type : "";
+    if (!type || type === "text" || type === "input_text" || type === "output_text") {
+      return record.text;
+    }
+    return null;
+  }
+  if (typeof record.input_text === "string") {
+    return record.input_text;
+  }
+  if (typeof record.output_text === "string") {
+    return record.output_text;
+  }
+  return null;
+}
+
+/**
+ * Normalize text-only user content arrays to plain strings.
+ * This avoids accidental Array<Object> string coercion ("[object Object]") in downstream
+ * context builders while preserving non-text blocks (images, files, tool payloads) as-is.
+ */
+function normalizeUserTextOnlyContent(messages: AgentMessage[]): AgentMessage[] {
+  let touched = false;
+  const out: AgentMessage[] = [];
+  for (const msg of messages) {
+    if (msg.role !== "user") {
+      out.push(msg);
+      continue;
+    }
+    const user = msg;
+    if (!Array.isArray(user.content)) {
+      out.push(msg);
+      continue;
+    }
+    const textParts: string[] = [];
+    let sawNonTextBlock = false;
+    for (const block of user.content) {
+      const text = extractTextFromUserContentBlock(block);
+      if (text == null) {
+        sawNonTextBlock = true;
+        break;
+      }
+      textParts.push(text);
+    }
+    if (sawNonTextBlock) {
+      out.push(msg);
+      continue;
+    }
+    const normalized = textParts.join("\n");
+    out.push({
+      ...(msg as Record<string, unknown>),
+      content: normalized,
+    } as AgentMessage);
+    touched = true;
+  }
+  return touched ? out : messages;
+}
+
 function stripStaleAssistantUsageBeforeLatestCompaction(messages: AgentMessage[]): AgentMessage[] {
   let latestCompactionSummaryIndex = -1;
   for (let i = 0; i < messages.length; i += 1) {
@@ -389,8 +457,9 @@ export async function sanitizeSessionHistory(params: {
       modelId: params.modelId,
     });
   const withInterSessionMarkers = annotateInterSessionUserMessages(params.messages);
+  const normalizedUserContent = normalizeUserTextOnlyContent(withInterSessionMarkers);
   const sanitizedImages = await sanitizeSessionMessagesImages(
-    withInterSessionMarkers,
+    normalizedUserContent,
     "session:history",
     {
       sanitizeMode: policy.sanitizeMode,
