@@ -40,6 +40,22 @@ describe("enablePluginInConfig", () => {
     expect(result.config.plugins?.entries?.telegram).toBeUndefined();
   });
 
+  it("clears stale explicit disable for built-in channels", () => {
+    const cfg: OpenClawConfig = {
+      plugins: {
+        entries: {
+          telegram: {
+            enabled: false,
+          },
+        },
+      },
+    };
+    const result = enablePluginInConfig(cfg, "telegram");
+    expect(result.enabled).toBe(true);
+    expect(result.config.channels?.telegram?.enabled).toBe(true);
+    expect(result.config.plugins?.entries?.telegram?.enabled).toBe(true);
+  });
+
   it("adds built-in channel id to allowlist when allowlist is configured", () => {
     const cfg: OpenClawConfig = {
       plugins: {

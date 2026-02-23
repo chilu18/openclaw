@@ -34,6 +34,24 @@ export function enablePluginInConfig(cfg: OpenClawConfig, pluginId: string): Plu
         },
       },
     };
+    const existingEntryEnabled = (
+      cfg.plugins?.entries?.[resolvedId] as Record<string, unknown> | undefined
+    )?.enabled;
+    if (existingEntryEnabled === false) {
+      next = {
+        ...next,
+        plugins: {
+          ...next.plugins,
+          entries: {
+            ...next.plugins?.entries,
+            [resolvedId]: {
+              ...(next.plugins?.entries?.[resolvedId] as Record<string, unknown> | undefined),
+              enabled: true,
+            },
+          },
+        },
+      };
+    }
     next = ensurePluginAllowlisted(next, resolvedId);
     return { config: next, enabled: true };
   }
