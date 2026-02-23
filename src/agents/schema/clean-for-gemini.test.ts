@@ -52,7 +52,7 @@ describe("cleanSchemaForGemini", () => {
       });
     });
 
-    test("does not flatten when types differ", () => {
+    test("falls back to representative type when types differ", () => {
       const schema = {
         anyOf: [
           { type: ["string"], const: "foo" },
@@ -62,8 +62,9 @@ describe("cleanSchemaForGemini", () => {
 
       const result = cleanSchemaForGemini(schema);
 
-      // Should not flatten mismatched types
-      expect(result).toHaveProperty("anyOf");
+      // Mismatched union types fall back to a representative type
+      // in flattenUnionFallback, but should not become a literal enum union.
+      expect(result).toEqual({ type: "string" });
       expect(result).not.toHaveProperty("enum");
     });
 
