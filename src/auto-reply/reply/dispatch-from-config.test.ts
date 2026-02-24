@@ -289,7 +289,7 @@ describe("dispatchReplyFromConfig", () => {
     expect(dispatcher.sendFinalReply).toHaveBeenCalledTimes(1);
   });
 
-  it("suppresses native tool summaries but still forwards tool media", async () => {
+  it("keeps native tool summaries and forwards tool media", async () => {
     setNoAbort();
     const cfg = emptyConfig;
     const dispatcher = createDispatcher();
@@ -314,10 +314,11 @@ describe("dispatchReplyFromConfig", () => {
 
     await dispatchReplyFromConfig({ ctx, cfg, dispatcher, replyResolver });
 
-    expect(dispatcher.sendToolResult).toHaveBeenCalledTimes(1);
-    const sent = firstToolResultPayload(dispatcher);
-    expect(sent?.mediaUrl).toBe("https://example.com/tts-native.opus");
-    expect(sent?.text).toBeUndefined();
+    expect(dispatcher.sendToolResult).toHaveBeenCalledTimes(2);
+    const first = dispatcher.sendToolResult.mock.calls[0]?.[0] as ReplyPayload | undefined;
+    const second = dispatcher.sendToolResult.mock.calls[1]?.[0] as ReplyPayload | undefined;
+    expect(first?.text).toBe("🔧 tools/sessions_send");
+    expect(second?.mediaUrl).toBe("https://example.com/tts-native.opus");
     expect(dispatcher.sendFinalReply).toHaveBeenCalledTimes(1);
   });
 

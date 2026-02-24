@@ -320,7 +320,10 @@ export async function dispatchReplyFromConfig(params: {
     let accumulatedBlockText = "";
     let blockCount = 0;
 
-    const shouldSendToolSummaries = ctx.ChatType !== "group" && ctx.CommandSource !== "native";
+    // Tool summaries are already gated by verbose level upstream; keep them for
+    // native-triggered runs so slash/skill flows still surface exec activity.
+    // Group chats remain suppressed to avoid noisy public tool traces.
+    const shouldSendToolSummaries = ctx.ChatType !== "group";
 
     const resolveToolDeliveryPayload = (payload: ReplyPayload): ReplyPayload | null => {
       if (shouldSendToolSummaries) {
