@@ -44,6 +44,14 @@ const asFiniteNumber = (value: unknown): number | undefined => {
   return value;
 };
 
+const asNonNegativeNumber = (value: unknown): number | undefined => {
+  const number = asFiniteNumber(value);
+  if (number === undefined) {
+    return undefined;
+  }
+  return number < 0 ? 0 : number;
+};
+
 export function hasNonzeroUsage(usage?: NormalizedUsage | null): usage is NormalizedUsage {
   if (!usage) {
     return false;
@@ -58,27 +66,27 @@ export function normalizeUsage(raw?: UsageLike | null): NormalizedUsage | undefi
     return undefined;
   }
 
-  const input = asFiniteNumber(
+  const input = asNonNegativeNumber(
     raw.input ?? raw.inputTokens ?? raw.input_tokens ?? raw.promptTokens ?? raw.prompt_tokens,
   );
-  const output = asFiniteNumber(
+  const output = asNonNegativeNumber(
     raw.output ??
       raw.outputTokens ??
       raw.output_tokens ??
       raw.completionTokens ??
       raw.completion_tokens,
   );
-  const cacheRead = asFiniteNumber(
+  const cacheRead = asNonNegativeNumber(
     raw.cacheRead ??
       raw.cache_read ??
       raw.cache_read_input_tokens ??
       raw.cached_tokens ??
       raw.prompt_tokens_details?.cached_tokens,
   );
-  const cacheWrite = asFiniteNumber(
+  const cacheWrite = asNonNegativeNumber(
     raw.cacheWrite ?? raw.cache_write ?? raw.cache_creation_input_tokens,
   );
-  const total = asFiniteNumber(raw.total ?? raw.totalTokens ?? raw.total_tokens);
+  const total = asNonNegativeNumber(raw.total ?? raw.totalTokens ?? raw.total_tokens);
 
   if (
     input === undefined &&

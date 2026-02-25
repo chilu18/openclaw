@@ -88,6 +88,23 @@ describe("normalizeUsage", () => {
     });
   });
 
+  it("clamps negative usage values to zero", () => {
+    const usage = normalizeUsage({
+      input: -12,
+      output: -4,
+      cache_read: -8,
+      cache_write: -3,
+      total: -27,
+    });
+    expect(usage).toEqual({
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      total: 0,
+    });
+  });
+
   it("returns undefined when no valid fields are provided", () => {
     const usage = normalizeUsage(null);
     expect(usage).toBeUndefined();
