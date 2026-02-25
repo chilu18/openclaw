@@ -355,16 +355,6 @@ export function createMSTeamsMessageHandler(deps: MSTeamsMessageHandlerDeps) {
       },
     });
 
-    const preview = rawBody.replace(/\s+/g, " ").slice(0, 160);
-    const inboundLabel = isDirectMessage
-      ? `Teams DM from ${senderName}`
-      : `Teams message in ${conversationType} from ${senderName}`;
-
-    core.system.enqueueSystemEvent(`${inboundLabel}: ${preview}`, {
-      sessionKey: route.sessionKey,
-      contextKey: `msteams:message:${conversationId}:${activity.id ?? "unknown"}`,
-    });
-
     const channelId = conversationId;
     const { teamConfig, channelConfig } = channelGate;
     const { requireMention, replyStyle } = resolveMSTeamsReplyPolicy({

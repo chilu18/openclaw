@@ -779,16 +779,6 @@ export async function handleFeishuMessage(params: {
       }
     }
 
-    const preview = ctx.content.replace(/\s+/g, " ").slice(0, 160);
-    const inboundLabel = isGroup
-      ? `Feishu[${account.accountId}] message in group ${ctx.chatId}`
-      : `Feishu[${account.accountId}] DM from ${ctx.senderOpenId}`;
-
-    core.system.enqueueSystemEvent(`${inboundLabel}: ${preview}`, {
-      sessionKey: route.sessionKey,
-      contextKey: `feishu:message:${ctx.chatId}:${ctx.messageId}`,
-    });
-
     // Resolve media from message
     const mediaMaxBytes = (feishuCfg?.mediaMaxMb ?? 30) * 1024 * 1024; // 30MB default
     const mediaList = await resolveFeishuMediaList({
