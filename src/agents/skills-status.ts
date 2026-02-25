@@ -17,6 +17,7 @@ import {
   type SkillsInstallPreferences,
 } from "./skills.js";
 import { resolveBundledSkillsContext } from "./skills/bundled-context.js";
+import { isInstallSpecSupportedOnCurrentRuntime } from "./skills/install-platform.js";
 
 export type SkillStatusConfigCheck = RequirementConfigCheck;
 
@@ -118,11 +119,7 @@ function normalizeInstallOptions(
     return [];
   }
 
-  const platform = process.platform;
-  const filtered = install.filter((spec) => {
-    const osList = spec.os ?? [];
-    return osList.length === 0 || osList.includes(platform);
-  });
+  const filtered = install.filter((spec) => isInstallSpecSupportedOnCurrentRuntime(spec));
   if (filtered.length === 0) {
     return [];
   }

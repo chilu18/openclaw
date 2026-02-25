@@ -14,6 +14,7 @@ metadata:
               "id": "brew",
               "kind": "brew",
               "formula": "steipete/tap/summarize",
+              "arch": ["arm64", "aarch64"],
               "bins": ["summarize"],
               "label": "Install summarize (brew)",
             },

@@ -18,6 +18,16 @@ vi.mock("../security/skill-scanner.js", async (importOriginal) => ({
 }));
 
 async function writeInstallableSkill(workspaceDir: string, name: string): Promise<string> {
+  return writeSkillWithInstallSpecs(workspaceDir, name, [
+    { id: "deps", kind: "node", package: "example-package" },
+  ]);
+}
+
+async function writeSkillWithInstallSpecs(
+  workspaceDir: string,
+  name: string,
+  installSpecs: Array<Record<string, unknown>>,
+): Promise<string> {
   const skillDir = path.join(workspaceDir, "skills", name);
   await fs.mkdir(skillDir, { recursive: true });
   await fs.writeFile(
@@ -25,7 +35,7 @@ async function writeInstallableSkill(workspaceDir: string, name: string): Promis
     `---
 name: ${name}
 description: test skill
-metadata: {"openclaw":{"install":[{"id":"deps","kind":"node","package":"example-package"}]}}
+metadata: ${JSON.stringify({ openclaw: { install: installSpecs } })}
 ---
 
 # ${name}
@@ -101,6 +111,31 @@ describe("installSkill code safety scanning", () => {
       expect(result.warnings?.some((warning) => warning.includes("Installation continues"))).toBe(
         true,
       );
+    });
+  });
+
+  it("blocks installers that are incompatible with the current architecture", async () => {
+    await withTempWorkspace(async ({ workspaceDir }) => {
+      const unsupportedArch = process.arch === "x64" ? "arm64" : "x64";
+      await writeSkillWithInstallSpecs(workspaceDir, "arch-limited-skill", [
+        {
+          id: "deps",
+          kind: "node",
+          package: "example-package",
+          arch: [unsupportedArch],
+        },
+      ]);
+
+      const result = await installSkill({
+        workspaceDir,
+        skillName: "arch-limited-skill",
+        installId: "deps",
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("not supported on this runtime");
+      expect(result.message).toContain(`current ${process.platform}/${process.arch}`);
+      expect(runCommandWithTimeoutMock).not.toHaveBeenCalled();
     });
   });
 });

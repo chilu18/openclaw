@@ -15,6 +15,7 @@ import {
   type SkillInstallSpec,
   type SkillsInstallPreferences,
 } from "./skills.js";
+import { isInstallSpecSupportedOnCurrentRuntime } from "./skills/install-platform.js";
 
 export type SkillInstallRequest = {
   workspaceDir: string;
@@ -253,6 +254,24 @@ function resolveBrewMissingFailure(spec: SkillInstallSpec): SkillInstallResult {
   return createInstallFailure({ message: `brew not installed — ${hint}` });
 }
 
+function resolveUnsupportedRuntimeFailure(spec: SkillInstallSpec): SkillInstallResult {
+  const requirements: string[] = [];
+  if ((spec.os ?? []).length > 0) {
+    requirements.push(`os=${(spec.os ?? []).join(", ")}`);
+  }
+  if ((spec.arch ?? []).length > 0) {
+    requirements.push(`arch=${(spec.arch ?? []).join(", ")}`);
+  }
+
+  const details =
+    requirements.length > 0
+      ? ` (requires ${requirements.join("; ")}; current ${process.platform}/${process.arch})`
+      : "";
+  return createInstallFailure({
+    message: `Installer is not supported on this runtime${details}`,
+  });
+}
+
 async function ensureUvInstalled(params: {
   spec: SkillInstallSpec;
   brewExe?: string;
@@ -417,6 +436,9 @@ export async function installSkill(params: SkillInstallRequest): Promise<SkillIn
       },
       warnings,
     );
+  }
+  if (!isInstallSpecSupportedOnCurrentRuntime(spec)) {
+    return withWarnings(resolveUnsupportedRuntimeFailure(spec), warnings);
   }
   if (spec.kind === "download") {
     const downloadResult = await installDownloadSpec({ entry, spec, timeoutMs });

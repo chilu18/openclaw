@@ -6,6 +6,7 @@ export type SkillInstallSpec = {
   label?: string;
   bins?: string[];
   os?: string[];
+  arch?: string[];
   formula?: string;
   package?: string;
   module?: string;
