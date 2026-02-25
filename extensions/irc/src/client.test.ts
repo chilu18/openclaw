@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildIrcNickServCommands } from "./client.js";
+import { buildFallbackNick, buildIrcNickServCommands } from "./client.js";
 
 describe("irc client nickserv", () => {
   it("builds IDENTIFY command when password is set", () => {
@@ -39,5 +39,26 @@ describe("irc client nickserv", () => {
         password: "secret\r\nJOIN #bad",
       }),
     ).toEqual(["PRIVMSG NickServ :IDENTIFY secret JOIN #bad"]);
+  });
+});
+
+describe("irc fallback nick generation", () => {
+  it("uses numbered fallbacks after the first collision", () => {
+    expect(buildFallbackNick("openclaw-bot", 1)).toBe("openclaw-bot_");
+    expect(buildFallbackNick("openclaw-bot", 2)).toBe("openclaw-bot_2");
+    expect(buildFallbackNick("openclaw-bot", 3)).toBe("openclaw-bot_3");
+  });
+
+  it("sanitizes nicknames and preserves bounded max length", () => {
+    expect(buildFallbackNick("open claw! bot", 2)).toBe("openclawbot_2");
+
+    const longNick = "abcdefghijklmnopqrstuvwxyz1234567890";
+    const firstFallback = buildFallbackNick(longNick, 1);
+    const tenthFallback = buildFallbackNick(longNick, 10);
+
+    expect(firstFallback.length).toBeLessThanOrEqual(30);
+    expect(tenthFallback.length).toBeLessThanOrEqual(30);
+    expect(firstFallback.endsWith("_")).toBe(true);
+    expect(tenthFallback.endsWith("_10")).toBe(true);
   });
 });

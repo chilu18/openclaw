@@ -9,6 +9,7 @@ import {
 
 const IRC_ERROR_CODES = new Set(["432", "464", "465"]);
 const IRC_NICK_COLLISION_CODES = new Set(["433", "436"]);
+const IRC_MAX_FALLBACK_NICK_ATTEMPTS = 10;
 
 export type IrcPrivmsgEvent = {
   senderNick: string;
@@ -81,11 +82,12 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
   });
 }
 
-function buildFallbackNick(nick: string): string {
+export function buildFallbackNick(nick: string, attempt = 1): string {
   const normalized = nick.replace(/\s+/g, "");
   const safe = normalized.replace(/[^A-Za-z0-9_\-\[\]\\`^{}|]/g, "");
   const base = safe || "openclaw";
-  const suffix = "_";
+  const normalizedAttempt = Number.isFinite(attempt) ? Math.max(1, Math.floor(attempt)) : 1;
+  const suffix = normalizedAttempt === 1 ? "_" : `_${normalizedAttempt}`;
   const maxNickLen = 30;
   if (base.length >= maxNickLen) {
     return `${base.slice(0, maxNickLen - suffix.length)}${suffix}`;
@@ -130,7 +132,7 @@ export async function connectIrcClient(options: IrcClientOptions): Promise<IrcCl
   let ready = false;
   let closed = false;
   let nickServRecoverAttempted = false;
-  let fallbackNickAttempted = false;
+  let fallbackNickAttempts = 0;
 
   const socket = options.tls
     ? tls.connect({
@@ -184,17 +186,18 @@ export async function connectIrcClient(options: IrcClientOptions): Promise<IrcCl
       }
     }
 
-    if (!fallbackNickAttempted) {
-      fallbackNickAttempted = true;
-      const fallbackNick = buildFallbackNick(desiredNick);
-      if (fallbackNick.toLowerCase() !== currentNick.toLowerCase()) {
-        try {
-          sendRaw(`NICK ${fallbackNick}`);
-          currentNick = fallbackNick;
-          return true;
-        } catch (err) {
-          fail(err);
-        }
+    while (fallbackNickAttempts < IRC_MAX_FALLBACK_NICK_ATTEMPTS) {
+      fallbackNickAttempts += 1;
+      const fallbackNick = buildFallbackNick(desiredNick, fallbackNickAttempts);
+      if (fallbackNick.toLowerCase() === currentNick.toLowerCase()) {
+        continue;
+      }
+      try {
+        sendRaw(`NICK ${fallbackNick}`);
+        currentNick = fallbackNick;
+        return true;
+      } catch (err) {
+        fail(err);
       }
     }
     return false;
