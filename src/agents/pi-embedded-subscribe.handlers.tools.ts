@@ -129,6 +129,22 @@ function collectMessagingMediaUrlsFromToolResult(result: unknown): string[] {
   return urls;
 }
 
+function hasUntrustedExternalContent(result: unknown): boolean {
+  if (!result || typeof result !== "object") {
+    return false;
+  }
+  const record = result as Record<string, unknown>;
+  const details = record.details;
+  if (!details || typeof details !== "object") {
+    return false;
+  }
+  const external = (details as Record<string, unknown>).externalContent;
+  if (!external || typeof external !== "object") {
+    return false;
+  }
+  return (external as { untrusted?: boolean }).untrusted === true;
+}
+
 function emitToolResultOutput(params: {
   ctx: ToolHandlerContext;
   toolName: string;
@@ -144,7 +160,8 @@ function emitToolResultOutput(params: {
 
   if (ctx.shouldEmitToolOutput()) {
     const outputText = extractToolResultText(sanitizedResult);
-    if (outputText) {
+    const suppressOutputText = toolName === "browser" && hasUntrustedExternalContent(result);
+    if (outputText && !suppressOutputText) {
       ctx.emitToolOutput(toolName, meta, outputText);
     }
     return;

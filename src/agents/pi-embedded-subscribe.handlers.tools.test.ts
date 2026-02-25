@@ -175,6 +175,42 @@ describe("handleToolExecutionEnd cron.add commitment tracking", () => {
   });
 });
 
+describe("handleToolExecutionEnd tool output suppression", () => {
+  it("suppresses browser output when result is marked as untrusted external content", async () => {
+    const { ctx } = createTestContext();
+    const emitToolOutput = vi.fn();
+    ctx.params.onToolResult = vi.fn();
+    ctx.shouldEmitToolOutput = () => true;
+    ctx.emitToolOutput = emitToolOutput;
+
+    await handleToolExecutionEnd(
+      ctx as never,
+      {
+        type: "tool_execution_end",
+        toolName: "browser",
+        toolCallId: "tool-browser-1",
+        isError: false,
+        result: {
+          content: [
+            {
+              type: "text",
+              text: '<<<EXTERNAL_UNTRUSTED_CONTENT id="deadbeefdeadbeef">>>\\nSource: Browser',
+            },
+          ],
+          details: {
+            externalContent: {
+              untrusted: true,
+              source: "browser",
+            },
+          },
+        },
+      } as never,
+    );
+
+    expect(emitToolOutput).not.toHaveBeenCalled();
+  });
+});
+
 describe("messaging tool media URL tracking", () => {
   it("tracks media arg from messaging tool as pending", async () => {
     const { ctx } = createTestContext();
