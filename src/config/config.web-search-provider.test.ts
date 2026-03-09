@@ -56,7 +56,7 @@ describe("web search provider config", () => {
         provider: "tavily",
         providerConfig: {
           apiKey: "test-key", // pragma: allowlist secret
-          searchDepth: "advanced",
+          baseUrl: "https://api.tavily.com",
         },
       }),
     );
@@ -77,8 +77,6 @@ describe("web search provider auto-detection", () => {
     delete process.env.TAVILY_API_KEY;
     delete process.env.OPENROUTER_API_KEY;
     delete process.env.XAI_API_KEY;
-    delete process.env.KIMI_API_KEY;
-    delete process.env.MOONSHOT_API_KEY;
   });
 
   afterEach(() => {
@@ -86,8 +84,8 @@ describe("web search provider auto-detection", () => {
     vi.restoreAllMocks();
   });
 
-  it("falls back to perplexity when no keys available", () => {
-    expect(resolveSearchProvider({})).toBe("perplexity");
+  it("falls back to brave when no keys available", () => {
+    expect(resolveSearchProvider({})).toBe("brave");
   });
 
   it("auto-detects brave when only BRAVE_API_KEY is set", () => {
@@ -130,12 +128,12 @@ describe("web search provider auto-detection", () => {
     expect(resolveSearchProvider({})).toBe("kimi");
   });
 
-  it("follows priority order — perplexity wins when multiple keys available", () => {
+  it("follows priority order — brave wins when multiple keys available", () => {
     process.env.PERPLEXITY_API_KEY = "test-perplexity-key"; // pragma: allowlist secret
     process.env.BRAVE_API_KEY = "test-brave-key"; // pragma: allowlist secret
     process.env.GEMINI_API_KEY = "test-gemini-key"; // pragma: allowlist secret
     process.env.XAI_API_KEY = "test-xai-key"; // pragma: allowlist secret
-    expect(resolveSearchProvider({})).toBe("perplexity");
+    expect(resolveSearchProvider({})).toBe("brave");
   });
 
   it("brave wins over gemini and grok when perplexity unavailable", () => {
